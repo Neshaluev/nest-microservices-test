@@ -1,0 +1,88 @@
+version: "3"
+
+services:
+  customer:
+    container_name: customer
+    build:
+      context: ./customer
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./customer/.env
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - app
+    volumes:
+      - .:/app
+      - /app/customer/node_modules
+
+  products:
+    container_name: products
+    build:
+      context: ./products
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./products/.env
+    networks:
+      - app
+    restart: always
+    depends_on:
+      - mongo
+      - rabbitmq
+    volumes:
+      - .:/app
+      - /app/products/node_modules
+
+  shopping:
+    container_name: shopping
+    build:
+      context: ./shopping
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./shopping/.env
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      - app
+    volumes:
+      - .:/app
+      - /app/shopping/node_modules
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+    container_name: mongo
+    volumes:
+      - ./db/:/data/db
+
+  rabbitmq:
+    image: rabbitmq
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+
+  nginx-proxy:
+    build:
+      dockerfile: Dockerfile
+      context: ./proxy
+    depends_on:
+      - products
+      - shopping
+      - customer
+    ports:
+      - 80:80
+
+networks:
+  app:
+    driver: bridge
